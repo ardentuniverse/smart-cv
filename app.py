@@ -110,7 +110,6 @@ def index():
         else:
             filename = secure_filename(file.filename)
 
-            # ✅ Fix #7: Validate file type BEFORE saving
             if not filename.lower().endswith(('.pdf', '.docx')):
                 error = "Unsupported file format. Use PDF or DOCX."
             else:
@@ -123,7 +122,6 @@ def index():
                     else:
                         cv_text = extract_text_from_docx(path)
 
-                    # ✅ Proceed only if no error
                     if not error:
                         score, roles, suggestions = final_summary(cv_text, job_text)
 
@@ -131,7 +129,6 @@ def index():
                     error = f"Error processing file: {str(e)}"
 
                 finally:
-                    # ✅ Fix #1: Delete uploaded file after processing
                     if os.path.exists(path):
                         os.remove(path)
 
@@ -148,7 +145,7 @@ def index():
             </style>
         </head>
         <body>
-            <h2>Smart CV Matcher (Lite)</h2>
+            <h2>Smart CV</h2>
             <form method="post" enctype="multipart/form-data">
                 <p><textarea name="job_description" rows="6" placeholder="Paste job description here..." required>{{ request.form.get('job_description', '') }}</textarea></p>
                 <p><input type="file" name="resume" required></p>
@@ -196,7 +193,3 @@ def index():
         </body>
         </html>
     """, score=score, error=error, roles=roles, suggestions=suggestions)
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
