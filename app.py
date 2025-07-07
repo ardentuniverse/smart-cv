@@ -27,7 +27,7 @@ def extract_text_from_docx(path):
 def calculate_similarity(cv_text, job_text):
     if not cv_text or not job_text:
         return 0.0
-    vectorizer = TfidfVectorizer()
+    vectorizer = TfidfVectorizer(stop_words='english', ngram_range=(1, 2))
     vectors = vectorizer.fit_transform([job_text, cv_text])
     score = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
     return round(score * 100, 2)
@@ -62,16 +62,27 @@ def generate_recommendations(cv_text, job_text):
     cv_text = cv_text.lower()
     job_text = job_text.lower()
 
-    if "meta ads" in job_text and "meta ads" not in cv_text:
-        recs.append("Add experience with Meta Ads or Facebook/Instagram paid campaigns.")
-    if ("collaboration" in job_text or "team" in job_text) and ("team" not in cv_text and "collaboration" not in cv_text):
-        recs.append("Mention any team-based projects or collaboration experience.")
-    if "mailchimp" in job_text and "mailchimp" not in cv_text:
-        recs.append("Include Mailchimp or any email marketing platform experience.")
-    if "communication" in job_text and "communication" not in cv_text:
-        recs.append("Highlight communication or writing responsibilities.")
-    if "first class" in job_text and "first class" not in cv_text:
-        recs.append("Mention certifications or coursework to support academic credentials.")
+    keyword_pairs = [
+        ("meta ads", "Add experience with Meta Ads or Facebook/Instagram paid campaigns."),
+        ("linkedin ads", "Mention experience with LinkedIn Ads or paid social campaigns."),
+        ("google ads", "Include hands-on experience with Google Ads or PPC platforms."),
+        ("seo audit", "Describe SEO audit processes or tools like Screaming Frog, Ahrefs, or SEMrush."),
+        ("cms", "Mention experience using a CMS like WordPress, Webflow, or similar."),
+        ("google analytics", "Highlight your skills in Google Analytics or data dashboards."),
+        ("remote", "Indicate comfort with remote work setups or self-directed projects."),
+        ("fast-paced", "Include experience thriving in fast-paced environments or startups."),
+        ("cross-functional", "Highlight projects involving collaboration with other teams (e.g., Sales, Product)."),
+        ("content strategy", "Showcase your approach to planning and executing content strategies."),
+        ("communication", "Mention your written or verbal communication strengths."),
+        ("first class", "Include strong academic background or relevant certifications."),
+        ("research", "Demonstrate research projects or market/UX analysis experience."),
+        ("reporting", "Include examples of performance reporting, campaign summaries, or dashboards."),
+        ("deadline", "Describe how you handle pressure and meet tight deadlines."),
+    ]
+
+    for keyword, message in keyword_pairs:
+        if keyword in job_text and keyword not in cv_text:
+            recs.append(message)
 
     return recs
 
@@ -79,7 +90,6 @@ def final_summary(cv_text, job_text):
     score = calculate_similarity(cv_text, job_text)
     roles = suggest_job_titles(job_text)
     suggestions = generate_recommendations(cv_text, job_text)
-
     return score, roles, suggestions
 
 @app.route('/', methods=['GET', 'POST'])
@@ -99,23 +109,31 @@ def index():
             error = "Please upload a CV file."
         else:
             filename = secure_filename(file.filename)
-            path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(path)
 
-            try:
-                if filename.lower().endswith('.pdf'):
-                    cv_text = extract_text_from_pdf(path)
-                elif filename.lower().endswith('.docx'):
-                    cv_text = extract_text_from_docx(path)
-                else:
-                    error = "Unsupported file format. Use PDF or DOCX."
-                    cv_text = ""
+            # ✅ Fix #7: Validate file type BEFORE saving
+            if not filename.lower().endswith(('.pdf', '.docx')):
+                error = "Unsupported file format. Use PDF or DOCX."
+            else:
+                path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(path)
 
-                if not error:
-                    score, roles, suggestions = final_summary(cv_text, job_text)
+                try:
+                    if filename.lower().endswith('.pdf'):
+                        cv_text = extract_text_from_pdf(path)
+                    else:
+                        cv_text = extract_text_from_docx(path)
 
-            except Exception as e:
-                error = f"Error processing file: {str(e)}"
+                    # ✅ Proceed only if no error
+                    if not error:
+                        score, roles, suggestions = final_summary(cv_text, job_text)
+
+                except Exception as e:
+                    error = f"Error processing file: {str(e)}"
+
+                finally:
+                    # ✅ Fix #1: Delete uploaded file after processing
+                    if os.path.exists(path):
+                        os.remove(path)
 
     return render_template_string("""
         <html>
@@ -149,22 +167,29 @@ def index():
                 {% endif %}
 
                 <h4>Smart Suggestions to Improve CV</h4>
-                <ul>
-                {% for s in suggestions %}
-                    <li>{{ s }}</li>
-                {% endfor %}
-                </ul>
+                {% if suggestions %}
+                    <ul>
+                    {% for s in suggestions %}
+                        <li>{{ s }}</li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No major gaps detected. Your CV covers most requirements, but fine-tuning could boost your score.</p>
+                {% endif %}
 
                 <h4>Final Thoughts</h4>
-                <p>
-                    Your CV demonstrates a solid foundation. To improve alignment with this role, consider:
+                {% if suggestions %}
+                    <p>To improve alignment with this role, consider:</p>
                     <ul>
                         {% for s in suggestions %}
                             <li>{{ s }}</li>
                         {% endfor %}
                     </ul>
-                    This can raise your match score from {{ score }}% to above 90%.
-                </p>
+                    <p>This can raise your match score from {{ score }}% to above 90%.</p>
+                {% else %}
+                    <p>You're already covering many key areas from the job description.
+                    For even better results, make sure your CV includes measurable impact, tools, and team contributions.</p>
+                {% endif %}
             {% elif error %}
                 <p style="color: red;"><strong>Error:</strong> {{ error }}</p>
             {% endif %}
