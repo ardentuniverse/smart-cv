@@ -8,13 +8,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 
-# Configurations
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2 MB limit
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB limit
 
-# Extract text from PDF
 def extract_text_from_pdf(path):
     text = ""
     with fitz.open(path) as doc:
@@ -22,12 +20,10 @@ def extract_text_from_pdf(path):
             text += page.get_text()
     return text.strip()
 
-# Extract text from DOCX
 def extract_text_from_docx(path):
     doc = docx.Document(path)
     return " ".join([p.text for p in doc.paragraphs]).strip()
 
-# Calculate TF-IDF similarity score
 def calculate_similarity(cv_text, job_text):
     if not cv_text or not job_text:
         return 0.0
@@ -36,23 +32,62 @@ def calculate_similarity(cv_text, job_text):
     score = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
     return round(score * 100, 2)
 
-# Get missing keywords from job description not found in CV
-def get_missing_keywords(cv_text, job_text):
-    stopwords = {
-        "the", "and", "to", "in", "of", "for", "on", "with", "a", "an",
-        "is", "at", "by", "this", "that", "are", "as", "be", "from", "or"
+def suggest_job_titles(job_text):
+    ROLE_KEYWORDS = {
+        "seo": ["SEO Specialist", "SEO Analyst", "Technical SEO Executive"],
+        "content": ["Content Writer", "Content Strategist", "Copywriter"],
+        "recruitment": ["Recruiter", "Talent Sourcer", "HR Assistant"],
+        "social media": ["Social Media Manager", "Community Manager", "Social Strategist"],
+        "data": ["Data Analyst", "Data Scientist", "Research Assistant"],
+        "ads": ["PPC Specialist", "Performance Marketer", "Paid Ads Manager"],
+        "email": ["Email Marketer", "CRM Executive", "Lifecycle Marketing Specialist"],
+        "copywriting": ["Copywriter", "Marketing Copywriter"],
+        "wordpress": ["WordPress Developer", "Web Content Manager"],
+        "graphics": ["Graphic Designer", "Visual Content Creator"],
+        "python": ["Python Developer", "Data Engineer"],
+        "research": ["UX Researcher", "Market Research Assistant"],
+        "ui ux": ["UI Designer", "UX Designer", "Product Designer"],
+        "project management": ["Project Coordinator", "Product Manager", "Scrum Master"],
+        "customer": ["Customer Support Specialist", "Customer Success Manager"],
+        "javascript": ["Frontend Developer", "React Developer", "JavaScript Engineer"]
     }
-    job_words = set(word.lower().strip(",.():;") for word in job_text.split())
-    cv_words = set(word.lower().strip(",.():;") for word in cv_text.split())
-    keywords = job_words - cv_words
-    keywords = [word for word in keywords if word not in stopwords and len(word) > 2]
-    return sorted(keywords)
+    matches = []
+    for keyword, roles in ROLE_KEYWORDS.items():
+        if keyword in job_text.lower():
+            matches.extend(roles)
+    return matches[:4]
+
+def generate_recommendations(cv_text, job_text):
+    recs = []
+    cv_text = cv_text.lower()
+    job_text = job_text.lower()
+
+    if "meta ads" in job_text and "meta ads" not in cv_text:
+        recs.append("Add experience with Meta Ads or Facebook/Instagram paid campaigns.")
+    if ("collaboration" in job_text or "team" in job_text) and ("team" not in cv_text and "collaboration" not in cv_text):
+        recs.append("Mention any team-based projects or collaboration experience.")
+    if "mailchimp" in job_text and "mailchimp" not in cv_text:
+        recs.append("Include Mailchimp or any email marketing platform experience.")
+    if "communication" in job_text and "communication" not in cv_text:
+        recs.append("Highlight communication or writing responsibilities.")
+    if "first class" in job_text and "first class" not in cv_text:
+        recs.append("Mention certifications or coursework to support academic credentials.")
+
+    return recs
+
+def final_summary(cv_text, job_text):
+    score = calculate_similarity(cv_text, job_text)
+    roles = suggest_job_titles(job_text)
+    suggestions = generate_recommendations(cv_text, job_text)
+
+    return score, roles, suggestions
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     score = None
     error = None
-    missing_keywords = []
+    roles = []
+    suggestions = []
 
     if request.method == 'POST':
         file = request.files.get('resume')
@@ -77,78 +112,65 @@ def index():
                     cv_text = ""
 
                 if not error:
-                    score = calculate_similarity(cv_text, job_text)
-                    missing_keywords = get_missing_keywords(cv_text, job_text)
+                    score, roles, suggestions = final_summary(cv_text, job_text)
 
             except Exception as e:
                 error = f"Error processing file: {str(e)}"
 
     return render_template_string("""
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            max-width: 700px;
-            margin: 2rem auto;
-            padding: 1.5rem;
-            background: #fafafa;
-            color: #333;
-            border-radius: 8px;
-            box-shadow: 0 0 8px rgba(0,0,0,0.05);
-          }
-          textarea, input[type="file"] {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 1rem;
-            font-size: 1rem;
-          }
-          button {
-            padding: 10px 20px;
-            background-color: #0b5ed7;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-          }
-          button:hover {
-            background-color: #094db1;
-          }
-          h2, h3, h4 {
-            color: #0b5ed7;
-          }
-          ul {
-            padding-left: 1.2rem;
-          }
-          li {
-            margin-bottom: 0.3rem;
-          }
-        </style>
+        <html>
+        <head>
+            <title>Smart CV Matcher</title>
+            <link href="https://fonts.googleapis.com/css2?family=Cabin&display=swap" rel="stylesheet">
+            <style>
+                body { font-family: 'Cabin', sans-serif; max-width: 800px; margin: auto; padding: 20px; line-height: 1.6; }
+                textarea, input[type=file] { width: 100%; padding: 10px; margin: 10px 0; }
+                button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+                ul { padding-left: 20px; }
+            </style>
+        </head>
+        <body>
+            <h2>Smart CV Matcher (Lite)</h2>
+            <form method="post" enctype="multipart/form-data">
+                <p><textarea name="job_description" rows="6" placeholder="Paste job description here..." required>{{ request.form.get('job_description', '') }}</textarea></p>
+                <p><input type="file" name="resume" required></p>
+                <p><button type="submit">Upload & Match</button></p>
+            </form>
+            {% if score is not none %}
+                <h3>CV–JD Match Score: {{ score }}%</h3>
 
-        <h2>Smart CV Matcher (Lite)</h2>
-        <form method="post" enctype="multipart/form-data">
-            <label><strong>Paste Job Description</strong></label>
-            <textarea name="job_description" rows="6" placeholder="E.g. We're hiring a backend developer skilled in Django, REST APIs, and PostgreSQL..." required>{{ request.form.get('job_description', '') }}</textarea>
-            
-            <label><strong>Upload Your CV (PDF or DOCX)</strong></label>
-            <input type="file" name="resume" required>
-            
-            <button type="submit">Upload & Match</button>
-        </form>
+                {% if roles %}
+                    <h4>Potential Roles That Align With This Profile</h4>
+                    <ul>
+                    {% for title in roles %}
+                        <li>{{ title }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
 
-        {% if score is not none %}
-          <h3>Match Score: {{ score }}%</h3>
-        {% endif %}
+                <h4>Smart Suggestions to Improve CV</h4>
+                <ul>
+                {% for s in suggestions %}
+                    <li>{{ s }}</li>
+                {% endfor %}
+                </ul>
 
-        {% if missing_keywords %}
-          <h4>Suggested Keywords to Add:</h4>
-          <ul>
-          {% for word in missing_keywords[:15] %}
-              <li>{{ word }}</li>
-          {% endfor %}
-          </ul>
-        {% elif error %}
-          <p style="color: red;"><strong>Error:</strong> {{ error }}</p>
-        {% endif %}
-    """, score=score, error=error, missing_keywords=missing_keywords)
+                <h4>Final Thoughts</h4>
+                <p>
+                    Your CV demonstrates a solid foundation. To improve alignment with this role, consider:
+                    <ul>
+                        {% for s in suggestions %}
+                            <li>{{ s }}</li>
+                        {% endfor %}
+                    </ul>
+                    This can raise your match score from {{ score }}% to above 90%.
+                </p>
+            {% elif error %}
+                <p style="color: red;"><strong>Error:</strong> {{ error }}</p>
+            {% endif %}
+        </body>
+        </html>
+    """, score=score, error=error, roles=roles, suggestions=suggestions)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
