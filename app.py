@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template_string, abort
+from flask import Flask, request, render_template_string
 from werkzeug.utils import secure_filename
 import os
 import fitz  # PyMuPDF
@@ -8,14 +8,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 
-# Configurations
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2 MB limit
-
-# Job description for matching
-JOB_DESCRIPTION = """We are looking for a React developer experienced with GraphQL and TypeScript."""
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB limit
 
 def extract_text_from_pdf(path):
     text = ""
@@ -29,7 +25,7 @@ def extract_text_from_docx(path):
     return " ".join([p.text for p in doc.paragraphs]).strip()
 
 def calculate_similarity(cv_text, job_text):
-    if not cv_text:
+    if not cv_text or not job_text:
         return 0.0
     vectorizer = TfidfVectorizer()
     vectors = vectorizer.fit_transform([job_text, cv_text])
@@ -42,8 +38,14 @@ def index():
     error = None
 
     if request.method == 'POST':
+        job_description = request.form.get('job_description', '').strip()
         file = request.files.get('resume')
-        if file:
+
+        if not job_description:
+            error = "Please enter a job description."
+        elif not file:
+            error = "Please upload your resume."
+        else:
             filename = secure_filename(file.filename)
             path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(path)
@@ -58,14 +60,15 @@ def index():
                     text = ""
 
                 if not error:
-                    score = calculate_similarity(text, JOB_DESCRIPTION)
+                    score = calculate_similarity(text, job_description)
 
             except Exception as e:
                 error = f"Error processing file: {str(e)}"
 
     return render_template_string("""
-        <h2>Smart CV Matcher (Lite)</h2>
+        <h2>Smart CV Matcher</h2>
         <form method="post" enctype="multipart/form-data">
+            <p><textarea name="job_description" rows="5" cols="50" placeholder="Paste the job description here..." required>{{ request.form.get('job_description', '') }}</textarea></p>
             <p><input type="file" name="resume" required></p>
             <p><button type="submit">Upload & Match</button></p>
         </form>
