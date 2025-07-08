@@ -2,4 +2,4 @@ Flask
 Werkzeug
 python-docx
 PyMuPDF
-scikit-learn
+rapidfuzz
