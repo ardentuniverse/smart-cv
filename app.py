@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, render_template_string
 from werkzeug.utils import secure_filename
 from rapidfuzz import fuzz
