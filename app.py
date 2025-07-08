@@ -25,21 +25,121 @@ def calculate_similarity(cv_text, jd_text):
     return round(fuzz.token_set_ratio(cv_text, jd_text), 2)
 
 def suggest_job_titles(job_text):
-    ROLE_KEYWORDS = {
-        "seo": ["SEO Specialist", "SEO Analyst"],
-        "content": ["Content Writer", "Copywriter"],
-        "recruit": ["Recruiter", "HR Assistant"],
-        "data": ["Data Analyst", "Research Assistant"],
-        "ads": ["PPC Specialist", "Paid Ads Manager"],
-        "email": ["Email Marketer"],
-        "python": ["Python Developer", "Data Engineer"],
-        "ui ux": ["UI Designer", "UX Designer"],
-        "customer": ["Customer Support", "Client Success Rep"],
-        "javascript": ["Frontend Developer", "React Developer"],
-        "project": ["Project Coordinator", "Scrum Master"],
-        "wordpress": ["WordPress Developer"],
-        "graphics": ["Graphic Designer"]
-    }
+ROLE_KEYWORDS = {
+    # Tech & IT     
+    "ads": ["Digital Marketing Specialist", "Paid Ads Manager", "Performance Marketer", "PPC Specialist"],
+    "seo": ["SEO Analyst", "Technical SEO Specialist"],
+    "ai": ["AI Engineer", "Machine Learning Engineer"],
+    "machine learning": ["Machine Learning Engineer", "ML Researcher"],
+    "architect": ["Solutions Architect", "Cloud Architect"],
+    "aws": ["AWS Engineer", "Cloud Solutions Architect"],
+    "azure": ["Azure Engineer", "Microsoft Cloud Specialist"],
+    "backend": ["Backend Developer", "API Engineer"],
+    "cloud": ["Cloud Engineer", "DevOps Cloud Specialist"],
+    "cybersecurity": ["Cybersecurity Analyst", "Security Engineer"],
+    "data": ["Data Analyst", "Data Scientist", "BI Developer"],
+    "python": ["Python Developer", "Data Engineer", "Automation Specialist"],
+    "sql": ["SQL Developer", "Database Analyst"],
+    "visualization": ["Dashboard Analyst", "Data Visualization Specialist"],
+    "developer": ["Software Developer", "Application Developer"],
+    "devops": ["DevOps Engineer", "CI/CD Specialist"],
+    "engineering": ["Software Engineer", "Backend Engineer", "Systems Engineer"],
+    "flutter": ["Flutter Developer", "Mobile App Developer"],
+    "frontend": ["Frontend Developer", "React Developer", "Web Engineer"],
+    "full stack": ["Full Stack Developer", "Web Application Developer"],
+    "it": ["IT Support Specialist", "Systems Analyst"],
+    "mobile": ["Mobile Developer", "iOS/Android Developer"],
+    "network": ["Network Administrator", "IT Infrastructure Engineer"],
+    "systems": ["Systems Engineer", "Linux Admin"],
+    "product manager": ["Product Manager", "Product Owner"],
+    "project manager": ["Project Manager", "Scrum Master"],
+    "qa": ["QA Engineer", "Test Automation Engineer"],
+    "quality assurance": ["QA Analyst", "SDET"],
+    "software": ["Software Engineer", "Software Developer"],
+    "solutions": ["Solutions Engineer", "Technical Consultant"],
+    "ui ux": ["UI Designer", "UX Designer", "Product Designer"],
+    "web": ["Web Developer", "Frontend Developer"],
+    "wordpress": ["WordPress Developer", "CMS Specialist"],
+
+    # Creative
+    "graphics": ["Graphic Designer", "Visual Content Creator", "Multimedia Designer"],
+    "video": ["Video Editor", "Motion Graphics Designer"],
+
+    # HR & Operations
+    "recruit": ["Recruiter", "HR Manager", "HR Assistant"],
+    
+    # Marketing & Content
+    "content": ["Content Writer", "Content Strategist", "Copywriter"],
+    "email": ["Email Marketer", "CRM Executive", "Lifecycle Marketing Specialist"],
+    "social": ["Social Media Manager", "Community Manager", "Social Strategist"],
+    "brand": ["Brand Manager", "Marketing Coordinator"],
+
+    # New Industries
+
+    ## Engineering (Non-IT)
+    "engineering": ["Mechanical Engineer", "Civil Engineer", "Electrical Engineer", "Structural Engineer"],
+
+    ## Finance
+    "finance": ["Financial Analyst", "Accountant", "Investment Analyst", "Treasury Manager"],
+    
+    ## Education
+    "education": ["Teacher", "Lecturer", "Academic Coordinator", "Curriculum Developer"],
+    
+    ## Logistics & Supply Chain
+    "logistics": ["Logistics Manager", "Supply Chain Analyst", "Warehouse Supervisor", "Inventory Planner"],
+    
+    ## Aviation
+    "aviation": ["Pilot", "Flight Attendant", "Air Traffic Controller", "Aviation Safety Officer"],
+    
+    ## Banking
+    "banking": ["Bank Teller", "Loan Officer", "Relationship Manager", "Branch Manager"],
+
+    ## Real Estate
+    "real estate": ["Real Estate Agent", "Property Manager", "Leasing Consultant", "Real Estate Analyst"],
+
+    ## Admin & Secretarial
+    "admin": ["Administrative Assistant", "Executive Assistant", "Office Manager", "Receptionist"],
+
+    ## Catering
+    "catering": ["Catering Manager", "Event Caterer", "Banquet Supervisor", "Catering Assistant"],
+
+    ## Consultancy
+    "consultancy": ["Management Consultant", "Business Consultant", "Strategy Consultant", "HR Consultant"],
+
+    ## Customer Care
+    "customer care": ["Customer Service Representative", "Call Center Agent", "Client Relations Officer"],
+
+    ## Hospitality & Hotel
+    "hospitality": ["Hotel Manager", "Concierge", "Front Desk Officer", "Housekeeping Supervisor"],
+
+    ## Law
+    "law": ["Lawyer", "Paralegal", "Legal Advisor", "Corporate Counsel"],
+
+    ## Manufacturing
+    "manufacturing": ["Production Supervisor", "Plant Manager", "Manufacturing Engineer", "Assembly Line Worker"],
+
+    ## Healthcare & Medical
+    "healthcare": ["Nurse", "Doctor", "Medical Assistant", "Clinical Research Associate"],
+
+    ## Oil & Gas
+    "oil and gas": ["Petroleum Engineer", "Drilling Supervisor", "HSE Officer", "Geologist"],
+
+    ## Project Management
+    "project": ["Project Coordinator", "Project Manager", "Scrum Master"],
+
+    ## Travels & Aviation (Merged with aviation for some roles)
+    "travel": ["Travel Consultant", "Tour Operator", "Ticketing Agent", "Travel Coordinator"],
+
+    ## Sales
+    "sales": ["Sales Executive", "Account Manager", "Territory Sales Rep", "Business Development Executive"],
+
+    ## Business Development
+    "business development": ["Business Development Manager", "Partnership Manager", "Growth Strategist"],
+
+    ## Retail
+    "retail": ["Store Manager", "Retail Sales Associate", "Merchandiser", "Cashier"]
+}
+
     job_text = job_text.lower()
     matches = []
     for keyword, roles in ROLE_KEYWORDS.items():
