@@ -204,20 +204,20 @@ def generate_recommendations(cv_text, jd_text):
         "meta ads": ["facebook ads", "instagram campaigns"],
         "cms": ["wordpress", "webflow"],
         "ga4": ["google analytics 4"],
-        "cross-functional": ["other departments", "collaborate with sales", "worked with product team"]
-    }
-
-    keyword_pairs = [
+        "cross-functional": ["other departments", "collaborate with sales", "worked with product team"],
+    }    
+    
+    keyword_pairs = [     
         ("google ads", 9, "⬤ Add Google Ads or PPC experience."),
         ("seo audit", 8, "⬤ Include SEO audits or tools like Ahrefs."),
         ("cms", 7, "⬤ Mention CMS platforms like WordPress."),
         ("ga4", 4, "⬤ Add GA4 or web analytics experience."),
         ("meta ads", 8, "⬤ Add Meta Ads (Facebook/Instagram) campaign work."),
         ("linkedin ads", 7, "⬤ Mention LinkedIn Ads or B2B paid social."),
-        ("remote", 4, "⬤ Highlight remote work experience."),
     ]
 
-    keyword_pairs_soft_skills = [
+    keyword_pairs_soft_skills = [ 
+        ("remote", 4, "⬤ Highlight remote work experience."),
         ("cross-functional", 6, "⬤ Include cross-team collaboration examples."),
         ("deadline", 4, "⬤ Describe how you meet deadlines under pressure."),
         ("communication", 5, "⬤ Add proof of communication skills."),
@@ -227,8 +227,8 @@ def generate_recommendations(cv_text, jd_text):
         ("presentation", 5, "⬤ Include presentation or public speaking achievements."),
         ("multitask", 4, "⬤ Show your ability to manage multiple responsibilities."),
     ]
-
-    keyword_pairs_tech = [
+    
+    keyword_pairs_tech = [         
         ("python", 8, "⬤ Include Python scripting or automation experience."),
         ("sql", 7, "⬤ Mention SQL or database querying skills."),
         ("aws", 8, "⬤ Add experience with AWS cloud services."),
@@ -241,7 +241,7 @@ def generate_recommendations(cv_text, jd_text):
         ("analytics", 7, "⬤ Mention web, business, or product analytics work."),
     ]
 
-    keyword_pairs_finance_banking = [
+    keyword_pairs_finance_banking = [     
         ("financial modeling", 8, "⬤ Add financial models or forecasting tools (e.g. Excel, Power BI)."),
         ("budgeting", 7, "⬤ Mention budget planning or cost control experience."),
         ("accounts payable", 6, "⬤ Include AP/AR processing or invoicing."),
@@ -249,53 +249,53 @@ def generate_recommendations(cv_text, jd_text):
         ("compliance", 6, "⬤ Highlight financial/legal compliance responsibilities."),
         ("audit", 6, "⬤ Add experience preparing or undergoing audits."),
     ]
-
-    keyword_pairs_education = [
+    
+    keyword_pairs_education = [    
         ("curriculum", 7, "⬤ Mention curriculum design or learning material development."),
         ("lesson planning", 6, "⬤ Include structured lesson or training plans."),
         ("student engagement", 6, "⬤ Highlight engagement or interactive teaching techniques."),
         ("assessment", 5, "⬤ Add evaluation or grading experience."),
     ]
-
+    
     keyword_pairs_logistics = [
         ("inventory", 7, "⬤ Add inventory control or stock management experience."),
         ("supply chain", 8, "⬤ Mention end-to-end supply chain processes."),
         ("logistics", 8, "⬤ Include logistics coordination or freight management."),
         ("warehouse", 6, "⬤ Describe warehouse or distribution experience."),
         ("procurement", 7, "⬤ Add vendor or purchase order management."),
-    ]
-
-    keyword_pairs_medical = [
+    ]    
+    
+    keyword_pairs_medical = [    
         ("patient care", 8, "⬤ Include hands-on or remote patient care experience."),
         ("clinical", 7, "⬤ Mention clinical trials or procedures."),
         ("emr", 6, "⬤ Add EMR/EHR systems used (e.g. Epic, Cerner)."),
         ("triage", 6, "⬤ Highlight triage or emergency response experience."),
         ("pharma", 6, "⬤ Include pharmaceutical or drug safety background."),
-    ]
+    ]    
 
     keyword_pairs_legal = [
         ("compliance", 7, "⬤ Highlight regulatory or legal compliance tasks."),
         ("contract", 7, "⬤ Include contract drafting, review, or negotiation."),
         ("legal research", 6, "⬤ Mention legal research or case analysis experience."),
         ("paralegal", 6, "⬤ Add paralegal or legal assistant tasks."),
-    ]
-
-    keyword_pairs_hospitality = [
+    ]    
+    
+    keyword_pairs_hospitality = [    
         ("guest service", 8, "⬤ Highlight customer/guest satisfaction focus."),
         ("reservation", 6, "⬤ Mention reservation systems or booking platforms used."),
         ("event planning", 7, "⬤ Add event or banquet coordination experience."),
         ("food safety", 6, "⬤ Include HACCP or other safety certification."),
-    ]
-
-    keyword_pairs_oil_gas = [
+    ]    
+    
+    keyword_pairs_oil_gas = [    
         ("drilling", 7, "⬤ Include drilling operations or well site management."),
         ("hse", 8, "⬤ Mention Health, Safety & Environment responsibilities."),
         ("pipeline", 6, "⬤ Add pipeline inspection or maintenance work."),
         ("rig", 7, "⬤ Describe offshore/onshore rig experience."),
-        ("geology", 6, "⬤ Include geological survey or subsurface mapping."),
+        ("geology", 6, "⬤ Include geological survey or subsurface mapping."),    
     ]
-
-    keyword_pairs_sales_business_retail = [
+    
+    keyword_pairs_sales_business_retail = [  
         ("kpi", 7, "⬤ Add KPIs or targets you’ve exceeded."),
         ("crm", 7, "⬤ Mention CRM platforms like Salesforce, HubSpot."),
         ("lead generation", 8, "⬤ Highlight prospecting or lead-gen activities."),
@@ -304,9 +304,25 @@ def generate_recommendations(cv_text, jd_text):
         ("retail", 6, "⬤ Mention store operations or customer interaction."),
     ]
 
-    for keyword, score, msg in keyword_pairs:
-        if (keyword in jd_text or any(syn in jd_text for syn in semantic_keywords.get(keyword, []))) and keyword not in cv_text:
-            recs.append((score, msg))
+    all_keyword_pairs = [
+        keyword_pairs,
+        keyword_pairs_soft_skills,
+        keyword_pairs_tech,
+        keyword_pairs_finance_banking,
+        keyword_pairs_education,
+        keyword_pairs_logistics,
+        keyword_pairs_medical,
+        keyword_pairs_legal,
+        keyword_pairs_hospitality,
+        keyword_pairs_oil_gas,
+        keyword_pairs_sales_business_retail,
+    ]    
+
+    for keyword_list in all_keyword_pairs:
+        for keyword, score, msg in keyword_list:
+            if (keyword in jd_text or any(syn in jd_text for syn in semantic_keywords.get(keyword, []))):
+                if not (keyword in cv_text or any(syn in cv_text for syn in semantic_keywords.get(keyword, []))):
+                    recs.append((score, msg))
 
     recs.sort(reverse=True)
     messages = [msg for _, msg in recs[:6]]
