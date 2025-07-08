@@ -37,9 +37,8 @@ def suggest_job_titles(job_text):
         "javascript": ["Frontend Developer", "React Developer"],
         "project": ["Project Coordinator", "Scrum Master"],
         "wordpress": ["WordPress Developer"],
-        "graphics": ["Graphic Designer"],
+        "graphics": ["Graphic Designer"]
     }
-
     job_text = job_text.lower()
     matches = []
     for keyword, roles in ROLE_KEYWORDS.items():
@@ -63,15 +62,15 @@ def detect_tools_missing(cv_text, jd_text):
     suggestions = []
     for k, v in tools.items():
         if k in jd_text and k not in cv_text:
-            suggestions.append(f"Add your experience with {v} if you’ve used it.")
+            suggestions.append(f"⬤ Add your experience with {v} if relevant.")
     return suggestions
 
 def detect_soft_skills(cv_text, jd_text):
     soft_skills = {
-        "communication": "Mention your communication skills (written or verbal).",
-        "team": "Add examples of teamwork or collaboration.",
-        "attention": "Include details showing attention to detail or quality.",
-        "adapt": "Mention adaptability or working in fast-paced environments."
+        "communication": "⬤ Mention your communication skills (written or verbal).",
+        "team": "⬤ Add examples of teamwork or collaboration.",
+        "attention": "⬤ Include proof of attention to detail or quality.",
+        "adapt": "⬤ Mention adaptability or thriving in fast-paced environments."
     }
     suggestions = []
     for k, msg in soft_skills.items():
@@ -82,7 +81,7 @@ def detect_soft_skills(cv_text, jd_text):
 def detect_weak_language(cv_text):
     strong_verbs = ["led", "managed", "designed", "built", "analyzed", "launched", "improved", "developed", "created"]
     if not any(verb in cv_text for verb in strong_verbs):
-        return ["Use stronger action verbs like 'led', 'built', or 'improved' to describe your impact."]
+        return ["⬤ Use action verbs like 'led', 'built', or 'improved' to show impact."]
     return []
 
 def generate_recommendations(cv_text, jd_text):
@@ -100,27 +99,24 @@ def generate_recommendations(cv_text, jd_text):
     }
 
     keyword_pairs = [
-        ("google ads", 9, "Add Google Ads or PPC experience."),
-        ("seo audit", 8, "Include SEO audits or tools like Ahrefs."),
-        ("cms", 7, "Mention CMS platforms like WordPress."),
-        ("ga4", 7, "Add experience with GA4 or web analytics."),
-        ("meta ads", 8, "Add Meta Ads (Facebook/Instagram) campaign work."),
-        ("linkedin ads", 7, "Mention LinkedIn Ads or B2B paid social."),
-        ("remote", 4, "State experience with remote or async work."),
-        ("cross-functional", 6, "Highlight collaboration with other teams."),
-        ("communication", 5, "Mention strong communication or storytelling."),
-        ("deadline", 4, "Describe handling pressure or timelines."),
+        ("google ads", 9, "⬤ Add Google Ads or PPC experience."),
+        ("seo audit", 8, "⬤ Include SEO audits or tools like Ahrefs."),
+        ("cms", 7, "⬤ Mention CMS platforms like WordPress."),
+        ("ga4", 7, "⬤ Add GA4 or web analytics experience."),
+        ("meta ads", 8, "⬤ Add Meta Ads (Facebook/Instagram) campaign work."),
+        ("linkedin ads", 7, "⬤ Mention LinkedIn Ads or B2B paid social."),
+        ("remote", 4, "⬤ Highlight remote or async work experience."),
+        ("cross-functional", 6, "⬤ Include cross-team collaboration examples."),
+        ("communication", 5, "⬤ Add proof of communication skills."),
+        ("deadline", 4, "⬤ Describe how you meet deadlines under pressure.")
     ]
 
-    # Direct + synonym checks
     for keyword, score, msg in keyword_pairs:
         if (keyword in jd_text or any(syn in jd_text for syn in semantic_keywords.get(keyword, []))) and keyword not in cv_text:
             recs.append((score, msg))
 
     recs.sort(reverse=True)
     messages = [msg for _, msg in recs[:6]]
-
-    # Add tool, soft skill, and language recs
     messages += detect_tools_missing(cv_text, jd_text)
     messages += detect_soft_skills(cv_text, jd_text)
     messages += detect_weak_language(cv_text)
@@ -135,7 +131,7 @@ def dynamic_summary(score):
     elif score >= 50:
         return "Decent alignment, but some key skills or achievements are missing."
     else:
-        return "Significant gaps found. Rework your CV to better match this job."
+        return "Significant gaps found. Add missing tools, skills, or clearer impact."
 
 def final_summary(cv_text, jd_text):
     score = calculate_similarity(cv_text, jd_text)
@@ -182,7 +178,7 @@ def index():
     return render_template_string("""
     <html>
     <head>
-        <title>Smart CV Matcher</title>
+        <title>Smart CV Checker</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta charset="UTF-8">
         <link href="https://fonts.googleapis.com/css2?family=Cabin&display=swap" rel="stylesheet">
@@ -194,11 +190,11 @@ def index():
         </style>
     </head>
     <body>
-        <h2>Smart CV Matcher</h2>
+        <h2>Smart CV Checker</h2>
         <form method="post" enctype="multipart/form-data">
             <p><textarea name="job_description" rows="6" placeholder="Paste job description here..." required>{{ request.form.get('job_description', '') }}</textarea></p>
             <p><input type="file" name="resume" required></p>
-            <p><button type="submit">Upload & Match</button></p>
+            <p><button type="submit">Scan</button></p>
         </form>
         {% if score is not none %}
             <h3>Match Score: {{ score }}%</h3>
@@ -213,7 +209,7 @@ def index():
                 <h4>Suggestions to Improve CV</h4>
                 <ul>{% for s in suggestions %}<li>{{ s }}</li>{% endfor %}</ul>
             {% else %}
-                <p>You're covering most of what the job requires — just fine-tune your language and achievements.</p>
+                <p>Your CV already covers key expectations. Just polish for clarity and measurable outcomes.</p>
             {% endif %}
         {% elif error %}
             <p style="color:red;"><strong>Error:</strong> {{ error }}</p>
