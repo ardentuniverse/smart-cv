@@ -1,4 +1,5 @@
 import os
+import re
 from flask import Flask, request, render_template_string
 from werkzeug.utils import secure_filename
 from rapidfuzz import fuzz
@@ -46,24 +47,16 @@ def suggest_job_titles(job_text):
             matches.extend(roles)
     return matches[:4]
 
+def extract_keywords_from_jd(text):
+    return list(set(re.findall(r'\b([A-Z][a-z]+(?: [A-Z][a-z]+)*)\b', text)))
+
 def detect_tools_missing(cv_text, jd_text):
-    tools = {
-        "google analytics": "Google Analytics",
-        "ga4": "Google Analytics 4",
-        "figma": "Figma",
-        "sql": "SQL",
-        "wordpress": "WordPress",
-        "mailchimp": "Mailchimp",
-        "trello": "Trello",
-        "hubspot": "Hubspot",
-        "notion": "Notion",
-        "photoshop": "Photoshop"
-    }
+    jd_keywords = extract_keywords_from_jd(jd_text)
     suggestions = []
-    for k, v in tools.items():
-        if k in jd_text and k not in cv_text:
-            suggestions.append(f"⬤ Add your experience with {v} if relevant.")
-    return suggestions
+    for tool in jd_keywords:
+        if tool.lower() not in cv_text:
+            suggestions.append(f"⬤ Mention your experience with {tool}.")
+    return suggestions[:5]
 
 def detect_soft_skills(cv_text, jd_text):
     soft_skills = {
@@ -79,9 +72,23 @@ def detect_soft_skills(cv_text, jd_text):
     return suggestions
 
 def detect_weak_language(cv_text):
-    strong_verbs = ["led", "managed", "designed", "built", "analyzed", "launched", "improved", "developed", "created"]
-    if not any(verb in cv_text for verb in strong_verbs):
-        return ["⬤ Use action verbs like 'led', 'built', or 'improved' to show impact."]
+    weak_phrases = ["helped with", "was responsible for", "involved in", "worked on"]
+    suggestions = []
+    for phrase in weak_phrases:
+        if phrase in cv_text:
+            suggestions.append(f"⬤ Replace weak phrase '{phrase}' with strong action verbs like 'led', 'executed', or 'owned'.")
+    return suggestions
+
+def detect_missing_metrics(cv_text):
+    if not re.search(r'\d+%|\$\d+|\d+\s+(users|leads|visits|conversions|clients|projects)', cv_text):
+        return ["⬤ Include measurable outcomes — like percentages, revenue impact, or user metrics."]
+    return []
+
+def detect_buzzwords(cv_text):
+    buzzwords = ["go-getter", "synergy", "hardworking", "self-starter", "detail-oriented", "team player"]
+    found = [word for word in buzzwords if word in cv_text.lower()]
+    if found:
+        return [f"⬤ Avoid buzzwords like: {', '.join(found)}. Use concrete examples instead."]
     return []
 
 def generate_recommendations(cv_text, jd_text):
@@ -120,8 +127,10 @@ def generate_recommendations(cv_text, jd_text):
     messages += detect_tools_missing(cv_text, jd_text)
     messages += detect_soft_skills(cv_text, jd_text)
     messages += detect_weak_language(cv_text)
+    messages += detect_missing_metrics(cv_text)
+    messages += detect_buzzwords(cv_text)
 
-    return messages[:8]
+    return messages[:10]
 
 def dynamic_summary(score):
     if score >= 85:
@@ -143,44 +152,38 @@ def final_summary(cv_text, jd_text):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     score = None
-    error = None
     roles = []
     suggestions = []
     summary = ""
+    error = None
 
     if request.method == 'POST':
         file = request.files.get('resume')
-        job_text = request.form.get('job_description', '').strip()
+        jd_text = request.form.get('job_description', '').strip()
 
-        if not job_text:
+        if not jd_text:
             error = "Please paste a job description."
         elif not file:
             error = "Please upload a CV file."
         else:
             filename = secure_filename(file.filename)
-
             if not filename.lower().endswith(('.pdf', '.docx')):
                 error = "Unsupported file format. Use PDF or DOCX."
             else:
                 try:
-                    file_stream = BytesIO(file.read())
-
-                    if filename.lower().endswith('.pdf'):
-                        cv_text = extract_text_from_pdf(file_stream)
+                    file_bytes = file.read()
+                    if filename.endswith('.pdf'):
+                        cv_text = extract_text_from_pdf(BytesIO(file_bytes))
                     else:
-                        cv_text = extract_text_from_docx(file_stream)
-
-                    score, roles, suggestions, summary = final_summary(cv_text, job_text)
-
+                        cv_text = extract_text_from_docx(BytesIO(file_bytes))
+                    score, roles, suggestions, summary = final_summary(cv_text, jd_text)
                 except Exception as e:
                     error = f"Error processing file: {str(e)}"
 
-    return render_template_string("""
+    return render_template_string('''
     <html>
     <head>
         <title>Smart CV Checker</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta charset="UTF-8">
         <link href="https://fonts.googleapis.com/css2?family=Cabin&display=swap" rel="stylesheet">
         <style>
             body { font-family: 'Cabin', sans-serif; max-width: 800px; margin: auto; padding: 20px; line-height: 1.6; }
@@ -202,21 +205,29 @@ def index():
 
             {% if roles %}
                 <h4>Potential Roles That Align With This Profile</h4>
-                <ul>{% for title in roles %}<li>{{ title }}</li>{% endfor %}</ul>
+                <ul>
+                {% for title in roles %}
+                    <li>{{ title }}</li>
+                {% endfor %}
+                </ul>
             {% endif %}
 
+            <h4>Suggestions to Improve CV</h4>
             {% if suggestions %}
-                <h4>Suggestions to Improve CV</h4>
-                <ul>{% for s in suggestions %}<li>{{ s }}</li>{% endfor %}</ul>
+                <ul>
+                {% for s in suggestions %}
+                    <li>{{ s }}</li>
+                {% endfor %}
+                </ul>
             {% else %}
-                <p>Your CV already covers key expectations. Just polish for clarity and measurable outcomes.</p>
+                <p>No major gaps detected.</p>
             {% endif %}
         {% elif error %}
-            <p style="color:red;"><strong>Error:</strong> {{ error }}</p>
+            <p style="color: red;"><strong>Error:</strong> {{ error }}</p>
         {% endif %}
     </body>
     </html>
-    """, score=score, roles=roles, suggestions=suggestions, error=error, summary=summary)
+    ''', score=score, roles=roles, suggestions=suggestions, summary=summary, error=error)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
