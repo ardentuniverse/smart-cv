@@ -200,11 +200,11 @@ def index():
             <p><button type="submit">Scan</button></p>
         </form>
         {% if score is not none %}
-            <h3>Match Score: {{ score }}%</h3>
+            <h3>ATS Score: {{ score }}%</h3>
             <p><strong>Summary:</strong> {{ summary }}</p>
 
             {% if roles %}
-                <h4>Potential Roles That Align With This Profile</h4>
+                <h4>Potential Roles That Align With This Vacancy</h4>
                 <ul>
                 {% for title in roles %}
                     <li>{{ title }}</li>
