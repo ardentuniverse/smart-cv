@@ -1,36 +1,26 @@
 from flask import Flask, request, render_template_string
 from werkzeug.utils import secure_filename
-import os
+from rapidfuzz import fuzz
 import fitz  # PyMuPDF
 import docx
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from io import BytesIO
 
 app = Flask(__name__)
-
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB limit
 
-def extract_text_from_pdf(path):
+def extract_text_from_pdf(file_obj):
     text = ""
-    with fitz.open(path) as doc:
+    with fitz.open(stream=file_obj, filetype="pdf") as doc:
         for page in doc:
             text += page.get_text()
     return text.strip()
 
-def extract_text_from_docx(path):
-    doc = docx.Document(path)
-    return " ".join([p.text for p in doc.paragraphs]).strip()
+def extract_text_from_docx(file_obj):
+    doc = docx.Document(file_obj)
+    return " ".join(p.text for p in doc.paragraphs).strip()
 
 def calculate_similarity(cv_text, job_text):
-    if not cv_text or not job_text:
-        return 0.0
-    vectorizer = TfidfVectorizer(stop_words='english', ngram_range=(1, 2))
-    vectors = vectorizer.fit_transform([job_text, cv_text])
-    score = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
-    return round(score * 100, 2)
+    return round(fuzz.token_set_ratio(cv_text, job_text), 2)
 
 def suggest_job_titles(job_text):
     ROLE_KEYWORDS = {
@@ -84,7 +74,7 @@ def generate_recommendations(cv_text, job_text):
         if keyword in job_text and keyword not in cv_text:
             recs.append(message)
 
-    return recs
+    return recs[:7]  # Only return top 7 suggestions
 
 def final_summary(cv_text, job_text):
     score = calculate_similarity(cv_text, job_text)
@@ -113,29 +103,25 @@ def index():
             if not filename.lower().endswith(('.pdf', '.docx')):
                 error = "Unsupported file format. Use PDF or DOCX."
             else:
-                path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(path)
-
                 try:
-                    if filename.lower().endswith('.pdf'):
-                        cv_text = extract_text_from_pdf(path)
-                    else:
-                        cv_text = extract_text_from_docx(path)
+                    file_stream = BytesIO(file.read())
 
-                    if not error:
-                        score, roles, suggestions = final_summary(cv_text, job_text)
+                    if filename.lower().endswith('.pdf'):
+                        cv_text = extract_text_from_pdf(file_stream)
+                    else:
+                        cv_text = extract_text_from_docx(file_stream)
+
+                    score, roles, suggestions = final_summary(cv_text, job_text)
 
                 except Exception as e:
                     error = f"Error processing file: {str(e)}"
-
-                finally:
-                    if os.path.exists(path):
-                        os.remove(path)
 
     return render_template_string("""
         <html>
         <head>
             <title>Smart CV Matcher</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta charset="UTF-8">
             <link href="https://fonts.googleapis.com/css2?family=Cabin&display=swap" rel="stylesheet">
             <style>
                 body { font-family: 'Cabin', sans-serif; max-width: 800px; margin: auto; padding: 20px; line-height: 1.6; }
@@ -193,7 +179,7 @@ def index():
         </body>
         </html>
     """, score=score, error=error, roles=roles, suggestions=suggestions)
-    
+
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
