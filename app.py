@@ -85,7 +85,7 @@ def detect_missing_metrics(cv_text):
     return []
 
 def detect_buzzwords(cv_text):
-    buzzwords = ["go-getter", "synergy", "hardworking", "self-starter", "detail-oriented", "team player"]
+    buzzwords = ["go-getter", "synergy", "hardworking", "self-starter", "detail-oriented", "team player", "results-driven", "dynamic", "think outside the box", "motivated", "fast learner", "passionate", "proactive", "guru", "rockstar", "ninja", "innovative", "dedicated", "strategic thinker", "problem solver", "excellent communicator", "multi-tasker", "thought leader", "visionary", "leverage", "empowered", "value-added", "cutting-edge", "circle back", "drill down", "move the needle", "game changer", "world-class", "culture fit", "self-motivated", "growth mindset", "holistic approach", "tech-savvy", "track record", "dynamic individual", "result-oriented"]
     found = [word for word in buzzwords if word in cv_text.lower()]
     if found:
         return [f"⬤ Avoid buzzwords like: {', '.join(found)}. Use concrete examples instead."]
