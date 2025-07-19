@@ -3,3 +3,5 @@ Werkzeug
 python-docx
 PyMuPDF
 rapidfuzz
+nltk
+python-dotenv
