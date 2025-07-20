@@ -9,6 +9,18 @@ import re
 from io import BytesIO
 from functools import lru_cache
 
+# Load model once globally
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+def embed_text(text):
+    return model.encode(text, convert_to_tensor=True)
+
+def calculate_score(cv_text, jd_text):
+    cv_embedding = embed_text(cv_text)
+    jd_embedding = embed_text(jd_text)
+    similarity = util.cos_sim(cv_embedding, jd_embedding).item()
+    return round(similarity * 100, 2)
+
 # === INIT ===
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
@@ -1926,8 +1938,7 @@ def index():
         if not suggestions:
             suggestions.append({
                 'title': 'No major gaps found — but here’s a tip',
-                'feedback': 'Consider adding more measurable results, tools used, or leadership achievements to strengthen this CV.',
-                'example': 'Reduced employee onboarding time by 30% through process automation and improved orientation structure.'
+                'feedback': 'Consider adding more measurable results, tools used, or leadership achievements to strengthen this CV.'
             })
 
         # Display results
