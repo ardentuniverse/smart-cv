@@ -1905,7 +1905,7 @@ def generate_suggestions(cv_text, jd_text, field):
 
     rules = FIELD_RULES.get(field, [])
     for rule in rules:
-        if any(k in jd_lower for k in rule['keywords']) and not any(k in cv_lower for k in rule['keywords']):
+        if any(k in jd_lower for k in rule['keywords']):
             suggestions.append({
                 'title': rule['title'],
                 'feedback': rule['feedback'],
@@ -1938,7 +1938,8 @@ def index():
         if not suggestions:
             suggestions.append({
                 'title': 'No major gaps found — but here’s a tip',
-                'feedback': 'Consider adding more measurable results, tools used, or leadership achievements to strengthen this CV.'
+                'feedback': 'Consider adding more measurable results, tools used, or leadership achievements to strengthen this CV.',
+                'example': 'Improved project turnaround time by 25%.'
             })
 
         # Display results
