@@ -21,6 +21,12 @@ def calculate_score(cv_text, jd_text):
     similarity = util.cos_sim(cv_embedding, jd_embedding).item()
     return round(similarity * 100, 2)
 
+# Semantic smart match helper
+def is_semantic_match(jd_text, cv_text, keyword):
+    jd_score = util.cos_sim(embed_text(jd_text), embed_text(keyword)).item()
+    cv_score = util.cos_sim(embed_text(cv_text), embed_text(keyword)).item()
+    return jd_score > 0.3 and cv_score < 0.25
+
 # === INIT ===
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB
@@ -1905,11 +1911,14 @@ def generate_suggestions(cv_text, jd_text, field):
 
     rules = FIELD_RULES.get(field, [])
     for rule in rules:
-        if any(k in jd_lower for k in rule['keywords']):
+        keyword_hit = any(k in jd_lower for k in rule['keywords']) and not any(k in cv_lower for k in rule['keywords'])
+        semantic_hit = any(is_semantic_match(jd_text, cv_text, k) for k in rule['keywords'])
+    
+        if keyword_hit or semantic_hit:
             suggestions.append({
                 'title': rule['title'],
                 'feedback': rule['feedback'],
-                'example': rule['example']
+                'example': rule.get('example', '')
             })
 
     return suggestions        
